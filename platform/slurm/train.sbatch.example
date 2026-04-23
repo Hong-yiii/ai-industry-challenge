@@ -1,0 +1,36 @@
+#!/bin/bash
+# Example only.
+# This assumes the cluster has container support configured, or that the image
+# has already been converted to a site-supported format.
+
+#SBATCH --job-name=aic-train
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
+#SBATCH --output=logs/%x-%j.out
+
+set -euo pipefail
+
+RUN_ROOT="${RUN_ROOT:-/shared/runs}"
+DATA_ROOT="${DATA_ROOT:-/shared/datasets}"
+IMAGE="${IMAGE:-registry.example.com/aic-train:latest}"
+RUN_DIR="${RUN_ROOT}/train/${SLURM_JOB_ID}"
+
+mkdir -p "${RUN_DIR}"
+
+echo "run_dir=${RUN_DIR}"
+echo "image=${IMAGE}"
+echo "job_id=${SLURM_JOB_ID}"
+echo "git_sha=${GIT_SHA:-unknown}"
+
+# Replace this launcher with the site-supported equivalent.
+srun --container-image="${IMAGE}" \
+  --container-mounts="${PWD}:/workspace,${DATA_ROOT}:/datasets,${RUN_DIR}:/runs" \
+  bash -lc '
+    set -euo pipefail
+    export MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI:-}"
+    export RUN_DIR=/runs
+    run-train --config /workspace/configs/train.yaml --output-dir "${RUN_DIR}"
+  '
