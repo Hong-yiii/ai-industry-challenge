@@ -1,0 +1,36 @@
+#!/bin/bash
+# Example only.
+# This keeps eval as a single batch job with explicit inputs and outputs.
+# It assumes the container image already exposes a scheduler-friendly eval
+# entrypoint and does not rely on nested Docker.
+
+#SBATCH --job-name=aic-eval
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=48G
+#SBATCH --time=02:00:00
+#SBATCH --output=logs/%x-%j.out
+
+set -euo pipefail
+
+RUN_ROOT="${RUN_ROOT:-/shared/runs}"
+IMAGE="${IMAGE:-registry.example.com/aic-eval-batch:latest}"
+RUN_DIR="${RUN_ROOT}/eval/${SLURM_JOB_ID}"
+
+mkdir -p "${RUN_DIR}"
+
+echo "run_dir=${RUN_DIR}"
+echo "image=${IMAGE}"
+echo "job_id=${SLURM_JOB_ID}"
+echo "policy=${POLICY_CLASS:-aic_example_policies.ros.WaveArm}"
+
+srun --container-image="${IMAGE}" \
+  --container-mounts="${PWD}:/workspace,${RUN_DIR}:/runs" \
+  bash -lc '
+    set -euo pipefail
+    mkdir -p /runs/results
+    run-batch-eval \
+      --policy "${POLICY_CLASS:-aic_example_policies.ros.WaveArm}" \
+      --results-dir /runs/results
+  '
