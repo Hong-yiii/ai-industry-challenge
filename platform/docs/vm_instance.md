@@ -45,8 +45,7 @@ before changing region or GPU type.
 - Pixi / pip caches
 - Short-lived run artifacts and rosbags before archiving to Cloud Storage
 
-Cloud Storage for longer-term artifact retention has not been provisioned yet.
-See [approval_needed.md](./approval_needed.md) for the storage tier decision.
+Cloud Storage is the durable archive tier for longer-term artifact retention.
 
 ## Cost Estimates
 
@@ -153,7 +152,10 @@ This verifies `nvidia-smi`, tests Docker GPU passthrough, pulls
 `ghcr.io/intrinsic-dev/aic/aic_eval:latest` (~10 GB), runs `pixi install`,
 and does a quick container smoke test.
 
-## Decisions Still Open
+## Current Decisions Snapshot
 
-Refer to [approval_needed.md](./approval_needed.md) for unresolved design decisions
-(access model, remote desktop technology, storage tier, experiment tracking).
+- Access model: `IAP + OS Login + tunneled services`
+- Interactive surface: `Foxglove` as default; remote desktop deferred
+- Storage: `Persistent Disk + Cloud Storage`
+- Scope: `single interactive VM`
+- Experiment tracking: deferred, with preliminary MLflow preparation

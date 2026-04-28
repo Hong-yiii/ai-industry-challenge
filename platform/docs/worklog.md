@@ -35,7 +35,7 @@ The strongest conclusions from that research were:
 - do not depend on the deprecated Compute Engine container startup agent
 - keep OCI images and direct commands as the runtime contract, not Docker Compose
 - use Foxglove as the default observability surface
-- use Amazon DCV if paid remote desktop is acceptable, otherwise use TurboVNC + VirtualGL
+- defer remote desktop standardization until there is a clear non-Foxglove need
 
 ## Resulting Design Choices
 
@@ -62,7 +62,6 @@ This directory centralizes:
 
 - architecture
 - operational runbooks
-- approval items
 - monitoring config
 - helper scripts
 

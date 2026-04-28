@@ -1,0 +1,59 @@
+# Foxglove bridge sidecar — extends aic_eval so it shares the same
+# ROS Kilted + rmw_zenoh_cpp environment with no extra setup.
+#
+# Build once on the VM:
+#   docker build -f platform/docker/Dockerfile.foxglove \
+#     -t aic-foxglove-bridge:latest .
+#
+# Then start it alongside aic_eval via:
+#   docker compose -f platform/compose/dev.compose.yaml up -d
+
+FROM ghcr.io/intrinsic-dev/aic/aic_eval:latest
+
+# The aic_eval image is Ubuntu 24.04 with ROS Kilted already installed.
+# Its apt sources already include the ROS 2 repo, so this is a single
+# package install on top of an already-configured base.
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends ros-kilted-foxglove-bridge && \
+    rm -rf /var/lib/apt/lists/*
+
+# ── package:// URI compatibility shim ────────────────────────────────────────
+# Foxglove requests package assets using URL-encoded URI path components.
+# Some upstream aic_assets paths contain characters that become encoded
+# (spaces, plus signs, etc.). foxglove_bridge forwards encoded components to
+# file resolution, so we provide encoded aliases as symlinks.
+#
+# This keeps the bridge working without modifying upstream assets while we
+# pursue the long-term cleanup (canonical ROS package names without spaces).
+RUN set -eux; \
+    python3 - <<'PY'
+import os
+from pathlib import Path
+from urllib.parse import quote
+
+root = Path("/ws_aic/install/share/aic_assets/models")
+if not root.exists():
+    raise SystemExit(f"missing assets directory: {root}")
+
+for dirpath, dirnames, filenames in os.walk(root):
+    current = Path(dirpath)
+    entries = list(dirnames) + list(filenames)
+    for name in entries:
+        encoded = quote(name, safe="-._~")
+        if encoded == name:
+            continue
+        link = current / encoded
+        if link.exists() or link.is_symlink():
+            continue
+        # Symlink target is sibling-local to remain stable if directory moves.
+        link.symlink_to(name)
+PY
+
+COPY platform/docker/rewrite_urdf_for_foxglove.py /rewrite_urdf_for_foxglove.py
+COPY platform/docker/foxglove-entrypoint.sh /foxglove-entrypoint.sh
+COPY platform/docker/foxglove_bridge_params.yaml /foxglove_bridge_params.yaml
+RUN chmod +x /foxglove-entrypoint.sh /rewrite_urdf_for_foxglove.py
+
+EXPOSE 8765
+
+ENTRYPOINT ["/foxglove-entrypoint.sh"]

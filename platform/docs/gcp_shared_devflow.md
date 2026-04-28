@@ -32,32 +32,22 @@ This machine choice is an inference from the challenge docs and current GCP mach
 
 ## Access Model
 
-Use one of these two access patterns:
-
-### Preferred for security
-
 - Compute Engine OS Login for Linux identities
 - IAP for SSH access to internal-only VMs
 - Browser SSH from the Google Cloud console for emergency access
-- `code-server`, Grafana, and remote desktop exposed through authenticated tunnels
+- Grafana, Prometheus, and Foxglove are exposed only through authenticated SSH tunnels.
 
-Tradeoff:
+This is the chosen baseline for the shared VM.
 
-- Stronger control plane and no direct SSH exposure
-- Developers need Google Cloud access and, for the best experience, the `gcloud` CLI
-
-### Preferred for lowest laptop setup friction
-
-- HTTPS reverse proxy on the VM
-- Browser access to `code-server`, Grafana, and browser-based remote desktop
-- SSH remains limited to administrators
-
-Tradeoff:
-
-- Lowest local dependency burden
-- Requires you to make a deliberate decision about auth, TLS, and service exposure
-
-This is one of the key approval decisions in [approval_needed.md](./approval_needed.md).
+```mermaid
+flowchart LR
+    Dev[Developer Laptop] -->|IAP + OS Login SSH| VM[Single GCP Interactive VM]
+    Dev -->|SSH tunnel: 3000/9090/8765| Svc[Grafana / Prometheus / Foxglove Bridge]
+    VM --> Eval[aic_eval in Docker]
+    VM --> Policy[Policy iteration via Pixi or model container]
+    VM --> PD[(Persistent Disk)]
+    VM --> GCS[(Cloud Storage archive)]
+```
 
 ## Working Layout On The VM
 
@@ -125,6 +115,39 @@ pixi run --as-is ros2 run aic_model aic_model \
   --ros-args -p use_sim_time:=true -p policy:=aic_example_policies.ros.WaveArm
 ```
 
+### Headless eval + Foxglove sidecar + CheatCode
+
+Use the compose stack in [../compose/dev.compose.yaml](../compose/dev.compose.yaml) so `aic_eval` and `foxglove_bridge` share the Docker network (Zenoh at `tcp/aic_eval:7447` inside the bridge container). CheatCode needs ground-truth TF from the sim; set `AIC_GROUND_TRUTH=true` so the `aic_eval` service passes `ground_truth:=true`.
+
+On the VM, from the repo root (for example `/srv/aic/repo` or your worktree):
+
+```bash
+export AIC_GROUND_TRUTH=true
+platform/scripts/aic-foxglove-bridge.sh
+```
+
+That builds or refreshes `aic-foxglove-bridge:latest`, starts `aic_eval` and `foxglove_bridge`, and publishes the Foxglove WebSocket on the VM at `127.0.0.1:8765`.
+
+From your laptop (VM running), open tunnels then connect Foxglove:
+
+```bash
+platform/scripts/aic-vm-observe.sh
+```
+
+In the browser: [https://app.foxglove.dev](https://app.foxglove.dev) → Open connection → Foxglove WebSocket → `ws://localhost:8765`. For URDF meshes in the 3D panel over the web bridge, use topic `/robot_description_foxglove` (see [foxglove_urdf_handoff.md](./foxglove_urdf_handoff.md)).
+
+Policy node (Zenoh to the eval container’s published port on the host):
+
+```bash
+RMW_IMPLEMENTATION=rmw_zenoh_cpp \
+ZENOH_ROUTER_CHECK_ATTEMPTS=-1 \
+ZENOH_CONFIG_OVERRIDE='connect/endpoints=["tcp/127.0.0.1:7447"];transport/shared_memory/enabled=false' \
+pixi run --as-is ros2 run aic_model aic_model \
+  --ros-args -p use_sim_time:=true -p policy:=aic_example_policies.ros.CheatCode
+```
+
+With this compose file, the engine writes run artifacts to `/results` in the container, which is the host path `/srv/aic/results` on the VM. Archive or rename `scoring.yaml` between runs if you need to keep history.
+
 ## GUI And Teleop Without X11 Forwarding
 
 Do not build the team workflow around X11 forwarding.
@@ -146,20 +169,10 @@ Default day-to-day observation:
 
 - Foxglove for ROS topics, images, TF, and graph inspection
 
-Primary full-desktop path if licensing is acceptable:
+Current decision:
 
-- Amazon DCV virtual sessions
-
-Open-source full-desktop fallback:
-
-- TurboVNC + VirtualGL
-- optional noVNC in front if browser-only access matters more than raw 3D responsiveness
-
-Why this split:
-
-- Foxglove should absorb most routine observability and keep the expensive desktop path idle.
-- Amazon DCV is the cleanest multi-user virtual desktop option if you are willing to pay for licensing outside EC2.
-- TurboVNC + VirtualGL is the strongest no-license fallback for RViz and Gazebo OpenGL workloads.
+- Foxglove only for now.
+- Remote desktop remains deferred until there is a concrete GUI-debugging requirement that Foxglove cannot cover.
 
 ## Shared Usage Policy
 
@@ -178,12 +191,10 @@ Keep storage tiered:
 
 - Persistent Disk SSD: repo, worktrees, caches, short-lived results
 - Cloud Storage: run artifacts, checkpoints, bags, exported reports
-- Filestore only if you actually need multi-writer POSIX semantics for shared datasets or checkpoints
 
 This is the pragmatic split:
 
 - Cloud Storage is better for artifact retention and cheap history
-- Filestore is only justified when concurrent file semantics matter
 
 ## Standardization
 

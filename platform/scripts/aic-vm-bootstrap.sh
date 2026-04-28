@@ -112,7 +112,7 @@ if [[ -d /srv/aic/repo/.git ]]; then
   info "Repo already cloned at /srv/aic/repo — skipping."
 else
   info "Cloning ai-industry-challenge repo…"
-  git clone https://github.com/intrinsic-dev/aic /srv/aic/repo
+  git clone https://github.com/Hong-yiii/ai-industry-challenge.git /srv/aic/repo
   info "Repo cloned to /srv/aic/repo."
 fi
 

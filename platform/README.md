@@ -27,12 +27,14 @@ Use one shared GCP GPU VM as the interactive development backend, and keep the r
 - [docs/gcp_shared_devflow.md](./docs/gcp_shared_devflow.md): the proposed shared GCP development flow
 - [docs/observability.md](./docs/observability.md): what to monitor and how to keep the system observable
 - [docs/slurm_portability.md](./docs/slurm_portability.md): how to keep the GCP workflow portable to SLURM
-- [docs/approval_needed.md](./docs/approval_needed.md): decisions that should be approved before provisioning
 - [docs/worklog.md](./docs/worklog.md): what was reviewed and why the recommendations landed here
+- [docs/foxglove_urdf_handoff.md](./docs/foxglove_urdf_handoff.md): Foxglove web + bridge — URDF topic `/robot_description_foxglove` and troubleshooting
 - [docs/reference_links.md](./docs/reference_links.md): external references consulted for GCP, observability, and SLURM portability
 - [slurm/train.sbatch.example](./slurm/train.sbatch.example): example train job shape for a containerized workflow
 - [slurm/eval.sbatch.example](./slurm/eval.sbatch.example): example eval job shape for a containerized workflow
-- [compose/observability.compose.yaml](./compose/observability.compose.yaml): optional monitoring stack
+- [compose/dev.compose.yaml](./compose/dev.compose.yaml): eval + Foxglove bridge as a single compose stack
+- [compose/observability.compose.yaml](./compose/observability.compose.yaml): Prometheus + Grafana + GPU metrics stack
+- [docker/Dockerfile.foxglove](./docker/Dockerfile.foxglove): Foxglove bridge sidecar image (extends `aic_eval`)
 - [monitoring/prometheus.yml](./monitoring/prometheus.yml): Prometheus scrape config for the monitoring stack
 - [scripts/aic-vm-config.env](./scripts/aic-vm-config.env): shared project/zone variables for VM scripts
 - [scripts/aic-vm-up.sh](./scripts/aic-vm-up.sh): start the GCP dev VM
@@ -40,10 +42,12 @@ Use one shared GCP GPU VM as the interactive development backend, and keep the r
 - [scripts/aic-vm-ssh.sh](./scripts/aic-vm-ssh.sh): SSH into the dev VM via gcloud
 - [scripts/aic-vm-bootstrap.sh](./scripts/aic-vm-bootstrap.sh): one-time VM setup (NVIDIA driver, Docker, nvidia-ctk, Pixi, repo clone)
 - [scripts/aic-vm-pull.sh](./scripts/aic-vm-pull.sh): post-reboot image pull and smoke test
+- [scripts/aic-vm-observe.sh](./scripts/aic-vm-observe.sh): SSH port-forward tunnels to Grafana + Prometheus
 - [scripts/aic-prepare-worktree.sh](./scripts/aic-prepare-worktree.sh): create or refresh a per-user remote worktree
 - [scripts/aic-mk-results-dir.sh](./scripts/aic-mk-results-dir.sh): create a unique `AIC_RESULTS_DIR`
 - [scripts/aic-healthcheck.sh](./scripts/aic-healthcheck.sh): inspect ROS graph and simulator liveness
 - [scripts/aic-session-report.sh](./scripts/aic-session-report.sh): snapshot host, Docker, and GPU state
+- [scripts/README.md](./scripts/README.md): script usage guide with examples and troubleshooting
 
 ## Practical Recommendation
 
@@ -54,8 +58,3 @@ If you want the shortest path that satisfies the stated requirements:
 3. Run Gazebo headless by default and only open a remote desktop session when a developer actually needs GUI debugging or teleop.
 4. Treat Foxglove and Grafana as always-on shared services.
 5. Keep training and evaluation entrypoints containerized so they can later move to Slurm with minimal workflow changes.
-
-For the remote desktop path:
-
-- paid/polished path: Amazon DCV
-- open-source path: TurboVNC + VirtualGL, optionally exposed through noVNC

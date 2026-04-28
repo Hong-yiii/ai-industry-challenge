@@ -1,0 +1,80 @@
+/**:
+  ros__parameters:
+    port: 8765
+    address: "0.0.0.0"
+    # Increase websocket backlog headroom for multi-panel cloud layouts.
+    # This avoids repeated "message backlog full" disconnects when image
+    # panels and 3D transforms are active at the same time over IAP.
+    send_buffer_limit: 500000000
+    use_sim_time: true
+    use_compression: true
+    max_qos_depth: 5
+
+    # 'parameters' lets Foxglove read /robot_description as a parameter
+    # (alongside the topic), which improves URDF auto-loading.
+    # 'connectionGraph' is intentionally omitted — aic_engine polls for
+    # aic_model every second, making the graph unstable and causing the
+    # Foxglove UI to flicker.
+    capabilities:
+      - clientPublish
+      - assets
+      - parameters
+
+    # The aic_assets package contains folder names with spaces
+    # (e.g. "Robotiq Hand-E", "Basler Camera", "Task Board Base").
+    # The default asset_uri_allowlist uses [-\w%] which excludes spaces,
+    # so URDF mesh fetches silently fail. Use [^/]+ for path components
+    # instead. The bridge separately rejects URIs containing '..'.
+    asset_uri_allowlist:
+      - "^package://[^/]+(?:/[^/]+)*\\.(?:dae|fbx|glb|gltf|jpeg|jpg|mtl|obj|png|stl|tif|tiff|urdf|webp|xacro)$"
+
+    # Whitelist of topic regexes (ECMAScript grammar). A topic is exposed
+    # only if it matches at least one of these patterns. By keeping this
+    # list narrow we (a) prevent Foxglove from accidentally subscribing to
+    # raw 20 Hz camera streams that would saturate the SSH IAP tunnel and
+    # cause "backlog full" disconnects, and (b) keep the topic list tidy.
+    #
+    # NOTE: raw /<x>_camera/image is deliberately NOT whitelisted; the
+    # image_transport republishers in this container expose a compressed
+    # version at /<x>_camera/image/compressed (~80 KB/frame).
+    topic_whitelist:
+      # transforms + sim time
+      - "^/tf$"
+      - "^/tf_static$"
+      - "^/clock$"
+      - "^/scoring/tf$"
+
+      # URDF + joint state for the 3D panel robot model
+      - "^/robot_description$"
+      # Rewritten URDF (file:// install paths -> package://) for Foxglove web
+      - "^/robot_description_foxglove$"
+      - "^/joint_states$"
+      - "^/dynamic_joint_states$"
+
+      # AIC model + controller telemetry
+      - "^/observations$"
+      - "^/aic_model/transition_event$"
+      - "^/aic_controller/.*"
+
+      # scoring events and ground-truth contact monitoring
+      - "^/scoring/.*"
+      - "^/aic/gazebo/contacts/.*"
+
+      # force-torque sensor at the gripper
+      - "^/fts_broadcaster/.*"
+
+      # compressed cameras only — raw image topics are deliberately excluded
+      - "^/[a-z]+_camera/image/compressed$"
+      - "^/[a-z]+_camera/camera_info$"
+
+      # logs + diagnostics
+      - "^/rosout$"
+      - "^/diagnostics$"
+
+    # Lock client publishing to the standard Foxglove inputs (Publish panel,
+    # Pose Estimate / Goal / Point tools). Stops Foxglove tabs from
+    # accidentally broadcasting on internal control topics.
+    client_topic_whitelist:
+      - "^/move_base_simple/goal$"
+      - "^/clicked_point$"
+      - "^/initialpose$"

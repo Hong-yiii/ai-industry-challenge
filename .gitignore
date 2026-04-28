@@ -3,6 +3,7 @@ __pycache__/
 *.egg-info/
 build/
 files.txt
+.DS_Store
 
 # pixi environments
 .pixi/*

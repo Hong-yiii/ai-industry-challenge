@@ -1,42 +1,76 @@
 name: aic-observability
 
+# Metrics + dashboards stack for aic-dev.
+# Start:  docker compose -f platform/compose/observability.compose.yaml up -d
+# Stop:   docker compose -f platform/compose/observability.compose.yaml down
+#
+# Access (via SSH tunnel from your laptop):
+#   gcloud compute ssh aic-dev --project ai-for-industry \
+#     --zone asia-southeast1-a -- -L 3000:localhost:3000 -L 9090:localhost:9090 -N
+#
+#   Then open:
+#     http://localhost:3000  →  Grafana  (admin / admin)
+#     http://localhost:9090  →  Prometheus
+#
+# Foxglove (ROS topics) is a separate process — see below.
+
 services:
   prometheus:
     image: prom/prometheus:latest
+    restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    extra_hosts:
+      # Allows Prometheus to scrape node-exporter running with network_mode: host
+      - "host.docker.internal:host-gateway"
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
 
   grafana:
     image: grafana/grafana:latest
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/"
     volumes:
       - grafana-data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - prometheus
 
+  # Host CPU, RAM, disk, network metrics
   node-exporter:
     image: prom/node-exporter:latest
+    restart: unless-stopped
+    network_mode: host        # required to expose host-level network stats
+    pid: host
     command:
       - --path.rootfs=/host
-    pid: host
+      - --collector.disable-defaults
+      - --collector.cpu
+      - --collector.meminfo
+      - --collector.diskstats
+      - --collector.filesystem
+      - --collector.loadavg
+      - --collector.netstat
     volumes:
       - /:/host:ro,rslave
 
+  # Per-container CPU, RAM metrics
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -47,19 +81,17 @@ services:
     devices:
       - /dev/kmsg:/dev/kmsg
 
+  # GPU utilization and VRAM via DCGM
   dcgm-exporter:
     image: nvcr.io/nvidia/k8s/dcgm-exporter:4.4.1-4.6.0-ubuntu22.04
+    restart: unless-stopped
+    runtime: nvidia           # required: wire in the NVIDIA container runtime
     ports:
-      - "9400:9400"
+      - "127.0.0.1:9400:9400"
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
     cap_add:
       - SYS_ADMIN
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
 
 volumes:
   grafana-data:

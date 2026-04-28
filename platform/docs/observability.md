@@ -102,11 +102,10 @@ Use a browser desktop only for:
 
 Treat it as a scarce debugging seat, not as the default way to use the remote environment.
 
-Recommended order:
+Current decision:
 
-- Amazon DCV if you want the cleanest multi-user virtual desktop workflow and accept licensing outside EC2
-- TurboVNC + VirtualGL if you want the strongest open-source path
-- optional noVNC only as an access layer, not as the 3D solution by itself
+- Do not standardize a remote desktop stack yet.
+- Use Foxglove as the interactive default and revisit desktop tooling only if required by specific debugging workflows.
 
 ## Health Checks
 
@@ -144,11 +143,11 @@ export AIC_RESULTS_DIR="$(platform/scripts/aic-mk-results-dir.sh smoke)"
 
 For training, keep the stack simple and portable:
 
-- TensorBoard or MLflow for scalar metrics and artifact links
+- TensorBoard now, with artifact layout prepared for MLflow adoption
 - checkpoints stored outside ephemeral job directories
 - system metrics collected the same way as eval runs
 
-Prefer MLflow when you need team-visible experiment history and remote artifact references.
+MLflow rollout is deferred, but run metadata should be structured so it can be onboarded later without reworking historical artifacts.
 
 ## Minimal Monitoring Stack
 

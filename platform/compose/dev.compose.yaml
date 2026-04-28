@@ -1,0 +1,74 @@
+name: aic-dev
+
+# Full development stack: eval environment + Foxglove bridge.
+#
+# IMPORTANT — install-tree skew
+# `foxglove_bridge` is built `FROM ghcr.io/intrinsic-dev/aic/aic_eval:latest`, so
+# its filesystem (including `/ws_aic/install` and `/opt/ros/.../share`) is
+# whatever that image contained at **build** time. The running `aic_eval`
+# container uses whatever digest was **pulled** when it was created. If those
+# differ, URDF `package://...` resolution in the sidecar can miss files even
+# though the graph looks fine. After pulling a new `aic_eval`, always:
+#   docker compose pull aic_eval
+#   docker compose build --pull foxglove_bridge
+#   docker compose up -d
+#
+# Build foxglove image once:
+#   docker compose -f platform/compose/dev.compose.yaml build
+#
+# Start (headless eval + Foxglove):
+#   docker compose -f platform/compose/dev.compose.yaml up -d
+#
+# CheatCode (needs sim ground-truth TF): set before build/up:
+#   export AIC_GROUND_TRUTH=true
+#
+# Then open the SSH tunnel from your laptop:
+#   platform/scripts/aic-vm-observe.sh
+#
+# And connect Foxglove:
+#   https://app.foxglove.dev  →  Open Connection  →  Foxglove WebSocket  →  ws://localhost:8765
+#
+# 3D robot meshes (browser): URDF custom layer → Source=Topic → /robot_description_foxglove
+# (sidecar rewrites file:// install paths to package:// for the bridge assets API).
+
+services:
+  aic_eval:
+    image: ghcr.io/intrinsic-dev/aic/aic_eval:latest
+    container_name: aic_eval
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "127.0.0.1:7447:7447"   # Zenoh router — foxglove_bridge connects here
+    environment:
+      AIC_RESULTS_DIR: /results
+    volumes:
+      - /srv/aic/results:/results
+    # Pass launch args as the command (aic_eval entrypoint is a ROS launch wrapper)
+    command: >
+      gazebo_gui:=false
+      launch_rviz:=false
+      ground_truth:=${AIC_GROUND_TRUTH:-false}
+      start_aic_engine:=true
+      shutdown_on_aic_engine_exit:=false
+      model_discovery_timeout_seconds:=3600
+
+  foxglove_bridge:
+    image: aic-foxglove-bridge:latest
+    build:
+      context: ../..
+      dockerfile: platform/docker/Dockerfile.foxglove
+    container_name: foxglove_bridge
+    ports:
+      - "127.0.0.1:8765:8765"   # Foxglove WebSocket — tunnelled to laptop
+    environment:
+      # Connect to the eval container's Zenoh router by service name.
+      # Docker's internal DNS resolves 'aic_eval' to the container IP.
+      ZENOH_ROUTER_ENDPOINT: "tcp/aic_eval:7447"
+    depends_on:
+      - aic_eval
+    restart: unless-stopped
