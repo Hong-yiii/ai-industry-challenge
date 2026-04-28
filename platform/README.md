@@ -22,6 +22,7 @@ Use one shared GCP GPU VM as the interactive development backend, and keep the r
 
 ## What Is In Here
 
+- [docs/vm_instance.md](./docs/vm_instance.md): **provisioned instance record** — actual specs, cost estimates, and lifecycle scripts
 - [docs/project_constraints.md](./docs/project_constraints.md): repo and challenge constraints that shaped the design
 - [docs/gcp_shared_devflow.md](./docs/gcp_shared_devflow.md): the proposed shared GCP development flow
 - [docs/observability.md](./docs/observability.md): what to monitor and how to keep the system observable
@@ -33,6 +34,12 @@ Use one shared GCP GPU VM as the interactive development backend, and keep the r
 - [slurm/eval.sbatch.example](./slurm/eval.sbatch.example): example eval job shape for a containerized workflow
 - [compose/observability.compose.yaml](./compose/observability.compose.yaml): optional monitoring stack
 - [monitoring/prometheus.yml](./monitoring/prometheus.yml): Prometheus scrape config for the monitoring stack
+- [scripts/aic-vm-config.env](./scripts/aic-vm-config.env): shared project/zone variables for VM scripts
+- [scripts/aic-vm-up.sh](./scripts/aic-vm-up.sh): start the GCP dev VM
+- [scripts/aic-vm-down.sh](./scripts/aic-vm-down.sh): stop the GCP dev VM (disk preserved)
+- [scripts/aic-vm-ssh.sh](./scripts/aic-vm-ssh.sh): SSH into the dev VM via gcloud
+- [scripts/aic-vm-bootstrap.sh](./scripts/aic-vm-bootstrap.sh): one-time VM setup (NVIDIA driver, Docker, nvidia-ctk, Pixi, repo clone)
+- [scripts/aic-vm-pull.sh](./scripts/aic-vm-pull.sh): post-reboot image pull and smoke test
 - [scripts/aic-prepare-worktree.sh](./scripts/aic-prepare-worktree.sh): create or refresh a per-user remote worktree
 - [scripts/aic-mk-results-dir.sh](./scripts/aic-mk-results-dir.sh): create a unique `AIC_RESULTS_DIR`
 - [scripts/aic-healthcheck.sh](./scripts/aic-healthcheck.sh): inspect ROS graph and simulator liveness
