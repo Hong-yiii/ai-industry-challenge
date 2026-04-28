@@ -38,8 +38,9 @@ else
   rm -f "${CUDA_DEB}"
 
   sudo apt-get update -qq
-  # cuda-drivers pulls the latest compatible driver; pin to 550 branch for L4
-  sudo apt-get install -y cuda-drivers-550
+  # Use open kernel modules (better compatibility with kernel ≥6.x, recommended for L4/Ada Lovelace).
+  # Do NOT use nvidia-dkms / cuda-drivers-550 — those fail to build on kernel 6.17+.
+  sudo apt-get install -y nvidia-open-580
   info "NVIDIA driver installed. A reboot is required."
 fi
 
