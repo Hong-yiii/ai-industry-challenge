@@ -1,5 +1,7 @@
 # AIC Dev VM — Provisioned Instance Record
 
+**Role:** Facts and commands for **`aic-dev`** (this team’s machine). For **generic** GCP shape rationale and long-term workflow (e.g. wider `g2-standard-32` suggestion, SLURM migration), see [gcp_shared_devflow.md](./gcp_shared_devflow.md).
+
 This document records the actual GCP instance that has been provisioned for the AIC project.
 It is the authoritative reference for the current hardware shape, cost expectations, and operational scripts.
 
@@ -75,45 +77,45 @@ The VM is stopped when not in use. Disk cost is always-on; compute only accrues 
 | 4 hrs        | ~$43              | $15    | ~$58        |
 | 8 hrs        | ~$87              | $15    | ~$102       |
 
-**Always stop the VM when done.** Use `platform/scripts/aic-vm-down.sh`.
+**Always stop the VM when done.** Use `platform/scripts/aic vm down` (or the `aic-vm-down.sh` compatibility shim).
 
 ### Spot preemption
 
 GCP may reclaim a Spot VM with 30 seconds notice. The instance action on preemption is
 `STOP` (not delete), so the disk and IP reservation are retained. Simply re-run
-`aic-vm-up.sh` to restart. The external IP may change on each start.
+`aic vm up` to restart (or `aic-vm-up.sh`). The external IP may change on each start.
 
 ## Lifecycle Scripts
 
-All scripts live in `platform/scripts/` and source their config from
+Operational commands use the unified **`platform/scripts/aic`** CLI, which reads
 `platform/scripts/aic-vm-config.env`.
 
 ```bash
 # Start the VM (prints current external IP)
-platform/scripts/aic-vm-up.sh
+platform/scripts/aic vm up
 
 # SSH in (use this — browser SSH is unreliable due to OAuth loop)
-platform/scripts/aic-vm-ssh.sh
+platform/scripts/aic vm ssh
 
 # Run a single remote command without an interactive shell
-platform/scripts/aic-vm-ssh.sh -- docker ps
+platform/scripts/aic vm ssh -- docker ps
 
 # Stop the VM (disk preserved; compute billing stops)
-platform/scripts/aic-vm-down.sh
+platform/scripts/aic vm down
 ```
 
 Override project/zone without editing files:
 
 ```bash
-AIC_VM_ZONE=asia-southeast1-b platform/scripts/aic-vm-up.sh
+AIC_VM_ZONE=asia-southeast1-b platform/scripts/aic vm up
 ```
 
 ## Access
 
-- **SSH**: `gcloud compute ssh` via `aic-vm-ssh.sh` (preferred)
+- **SSH**: `gcloud compute ssh` via **`platform/scripts/aic vm ssh`** (preferred)
 - **Browser SSH**: Available in the GCP console but prone to OAuth loop hangs; use only as a fallback
-- **External IP**: Dynamic on each start (printed by `aic-vm-up.sh`); last known value was `34.143.177.7`
-- **Internal IP**: `10.148.0.2` (stable within the VPC)
+- **External IP**: Dynamic on each start — run `platform/scripts/aic vm up` and use the printed address (not stored here; it changes with restarts and Spot behavior)
+- **Internal IP**: VPC-internal; use `gcloud compute instances describe ...` if you need the current value for firewall or peering
 
 ## One-Time Setup
 
@@ -123,29 +125,29 @@ The process takes ~5 minutes and requires one reboot.
 ### Phase 1 — bootstrap (installs everything)
 
 ```bash
-platform/scripts/aic-vm-up.sh
-platform/scripts/aic-vm-ssh.sh -- 'bash -s' < platform/scripts/aic-vm-bootstrap.sh
+platform/scripts/aic vm up
+platform/scripts/aic vm ssh -- 'bash -s' < platform/scripts/aic-vm-bootstrap.sh
 ```
 
 This installs:
-- NVIDIA GPU driver 550 (via CUDA network repo)
+- NVIDIA **open kernel** driver **`nvidia-open-580`** (via CUDA/apt network repo — avoids DKMS breakage on newer kernels)
 - Docker Engine + post-install user group setup
 - NVIDIA Container Toolkit + Docker runtime configuration
 - Pixi
 - `/srv/aic/` working directory layout
-- Clones the challenge repo to `/srv/aic/repo`
+- Clones the toolkit repo to `/srv/aic/repo` (default `https://github.com/intrinsic-dev/aic.git`; override with `AIC_REPO_URL=` on the remote `bash -s` line — see [`scripts/README.md`](../scripts/README.md))
 
 ### Phase 2 — reboot
 
 ```bash
-platform/scripts/aic-vm-down.sh   # clean shutdown
-platform/scripts/aic-vm-up.sh     # start again (driver active after reboot)
+platform/scripts/aic vm down      # clean shutdown
+platform/scripts/aic vm up        # start again (driver active after reboot)
 ```
 
 ### Phase 3 — pull images and verify
 
 ```bash
-platform/scripts/aic-vm-ssh.sh -- 'bash -s' < platform/scripts/aic-vm-pull.sh
+platform/scripts/aic vm ssh -- 'bash -s' < platform/scripts/aic-vm-pull.sh
 ```
 
 This verifies `nvidia-smi`, tests Docker GPU passthrough, pulls

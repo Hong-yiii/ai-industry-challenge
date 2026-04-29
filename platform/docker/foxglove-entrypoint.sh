@@ -60,8 +60,8 @@ echo "[foxglove-bridge] Connect from https://app.foxglove.dev using ws://localho
 echo "[foxglove-bridge] 3D URDF (web Foxglove): add URDF layer → Source=Topic → /robot_description_foxglove (not raw /robot_description)"
 echo ""
 
-# Use a YAML params file — the only reliable way to pass list parameters
-# (capabilities, topic_blacklist) to a ROS 2 node at runtime.
+# Use a YAML params file — reliable way to pass list parameters (capabilities,
+# topic_regexes / topic_allowlist patterns) to the ROS 2 foxglove_bridge node.
 exec ros2 run foxglove_bridge foxglove_bridge \
   --ros-args \
   --params-file /foxglove_bridge_params.yaml

@@ -1,5 +1,7 @@
 # Shared GCP Development Flow
 
+**Role:** Generic recommendations (machine family, access pattern, development loop) before you standardize on concrete instances. For the **provisioned `aic-dev` record** (hardware, costs, phased bootstrap), see [vm_instance.md](./vm_instance.md).
+
 This is the recommended development flow for moving the project onto GCP Compute Engine without relying on X11 forwarding.
 
 ## Goals
@@ -28,7 +30,7 @@ Why this shape:
 - `g2-standard-32` is the closest cost-reasonable starting point for a shared dev node.
 - If Gazebo throughput still blocks the team, move the interactive node up or add a separate batch node rather than making every engineer share one overloaded session.
 
-This machine choice is an inference from the challenge docs and current GCP machine tables, not a challenge requirement.
+This machine choice is an inference from the challenge docs and current GCP machine tables, not a challenge requirement. A smaller first node (for example `g2-standard-8`) may be used for cost-conscious policy iteration; see the **provisioned record** in [vm_instance.md](./vm_instance.md).
 
 ## Access Model
 
@@ -65,7 +67,7 @@ Use a layout that separates base repo state, per-user worktrees, and artifacts:
 
 This avoids shared mutable state in a single checkout and makes clean-up tractable.
 
-Use [../scripts/aic-prepare-worktree.sh](../scripts/aic-prepare-worktree.sh) to create or refresh a user worktree from a pushed branch.
+Use `git fetch` plus `git worktree add …` under `/srv/aic/` (or your documented layout above) to create or refresh a per-user worktree from a pushed branch — see [**`scripts/README.md`**](../scripts/README.md) if you automate this.
 
 ## Development Loop
 
@@ -81,16 +83,17 @@ Use [../scripts/aic-prepare-worktree.sh](../scripts/aic-prepare-worktree.sh) to 
 
 ### Commands
 
-Create or refresh a remote worktree:
+Create or refresh a remote worktree (example):
 
 ```bash
-platform/scripts/aic-prepare-worktree.sh <branch>
+cd /srv/aic/repo && git fetch origin && git worktree add /srv/aic/worktrees/you/feat-branch feat-branch
 ```
 
 Create a unique run directory:
 
 ```bash
-export AIC_RESULTS_DIR="$(platform/scripts/aic-mk-results-dir.sh smoke)"
+export AIC_RESULTS_DIR="${HOME}/aic_results/smoke_$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "${AIC_RESULTS_DIR}"
 ```
 
 Headless eval container on the remote VM:
@@ -105,6 +108,11 @@ docker run --rm --name aic_eval_remote -p 7447:7447 --gpus all \
   model_discovery_timeout_seconds:=600
 ```
 
+**`shutdown_on_aic_engine_exit`**
+
+- Compose ([`dev.compose.yaml`](../compose/dev.compose.yaml)) uses **`:=false`** so `aic_eval` stays up for long Foxglove / policy-debug sessions without exiting when `aic_engine` stops.
+- **Throwaway `docker run` smoke checks** above use **`:=true`** so the container exits when the eval session ends — useful when you only need a minimal verification loop.
+
 Policy-side execution from the remote worktree:
 
 ```bash
@@ -117,24 +125,13 @@ pixi run --as-is ros2 run aic_model aic_model \
 
 ### Headless eval + Foxglove sidecar + CheatCode
 
-Use the compose stack in [../compose/dev.compose.yaml](../compose/dev.compose.yaml) so `aic_eval` and `foxglove_bridge` share the Docker network (Zenoh at `tcp/aic_eval:7447` inside the bridge container). CheatCode needs ground-truth TF from the sim; set `AIC_GROUND_TRUTH=true` so the `aic_eval` service passes `ground_truth:=true`.
+Stack: [../compose/dev.compose.yaml](../compose/dev.compose.yaml) — `aic_eval` and `foxglove_bridge` on one Docker network; the bridge joins Zenoh at **`tcp/aic_eval:7447`** inside Compose.
 
-On the VM, from the repo root (for example `/srv/aic/repo` or your worktree):
+**Concrete commands** (`docker compose up`, **`platform/scripts/aic stack dev up`** or the `aic-foxglove-bridge.sh` shim, `AIC_GROUND_TRUTH=true`, laptop tunnel via **`aic tunnel`**) live in [**`scripts/README.md`**](../scripts/README.md).
 
-```bash
-export AIC_GROUND_TRUTH=true
-platform/scripts/aic-foxglove-bridge.sh
-```
+CheatCode needs ground-truth TF from the sim: set **`export AIC_GROUND_TRUTH=true`** before `compose` / **`aic stack dev`** so the `aic_eval` service receives `ground_truth:=true`.
 
-That builds or refreshes `aic-foxglove-bridge:latest`, starts `aic_eval` and `foxglove_bridge`, and publishes the Foxglove WebSocket on the VM at `127.0.0.1:8765`.
-
-From your laptop (VM running), open tunnels then connect Foxglove:
-
-```bash
-platform/scripts/aic-vm-observe.sh
-```
-
-In the browser: [https://app.foxglove.dev](https://app.foxglove.dev) → Open connection → Foxglove WebSocket → `ws://localhost:8765`. For URDF meshes in the 3D panel over the web bridge, use topic `/robot_description_foxglove` (see [foxglove_urdf_handoff.md](./foxglove_urdf_handoff.md)).
+Deep URDF / browser 3D troubleshooting: [foxglove_urdf_handoff.md](./foxglove_urdf_handoff.md).
 
 Policy node (Zenoh to the eval container’s published port on the host):
 

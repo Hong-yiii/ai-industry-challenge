@@ -1,0 +1,9 @@
+name: aic-platform
+
+# Full platform environment (eval + Foxglove + metrics). Observability compose already
+# includes dev; this file sets project name `aic-platform` for a single obvious default.
+#
+#   docker compose -f platform/compose/full.compose.yaml up -d
+#
+include:
+  - path: observability.compose.yaml

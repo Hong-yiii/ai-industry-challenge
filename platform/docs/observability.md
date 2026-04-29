@@ -117,8 +117,8 @@ Two small repo-local scripts are included for day-to-day checks:
 Typical use:
 
 ```bash
-platform/scripts/aic-healthcheck.sh
-platform/scripts/aic-session-report.sh
+platform/scripts/aic diag ros
+platform/scripts/aic diag host
 ```
 
 The first inspects ROS graph liveness. The second snapshots host, Docker, and GPU state.
@@ -136,7 +136,9 @@ Always assign:
 Use:
 
 ```bash
-export AIC_RESULTS_DIR="$(platform/scripts/aic-mk-results-dir.sh smoke)"
+RUN_DIR="${HOME}/aic_results/smoke_$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "${RUN_DIR}"
+export AIC_RESULTS_DIR="${RUN_DIR}"
 ```
 
 ## Training Observability
@@ -155,13 +157,29 @@ This directory includes an optional monitoring compose file:
 
 - [../compose/observability.compose.yaml](../compose/observability.compose.yaml)
 - [../monitoring/prometheus.yml](../monitoring/prometheus.yml)
+- [../monitoring/grafana/provisioning/](../monitoring/grafana/provisioning/) — Grafana datasources (and any bundled dashboards) consumed by the compose file
 
 It brings up:
 
+- headless `aic_eval` and `foxglove_bridge` (via included [`dev.compose.yaml`](../compose/dev.compose.yaml))
 - Prometheus
 - Grafana
 - node-exporter
 - cAdvisor
 - dcgm-exporter
+
+### Start order versus SSH tunnels
+
+1. **On the VM**, from `/srv/aic/repo` or any clone containing `platform/`:
+
+   ```bash
+   docker compose -f platform/compose/observability.compose.yaml up -d
+   ```
+
+2. Optional: **`docker compose ... ps`** and open `http://127.0.0.1:3000` (Grafana) on the VM to confirm Grafana responds **before** tunnelling.
+
+3. **On your laptop**, `platform/scripts/aic tunnel` forwards **localhost** ports (**3000**, **9090**, **8080**, **8765**) to the same ports on the VM. If Grafana or Prometheus are not running (`connection refused` on localhost), either start the observability compose above or omit those URLs — tunnels do not create services.
+
+Foxglove’s **8765** is exposed by `foxglove_bridge` included whenever you start observability compose (or [`dev.compose.yaml`](../compose/dev.compose.yaml) alone); the same tunnel script reaches metrics and Foxglove. Do not run the observability and dev compose **projects** together on one host (duplicate `aic_eval` / port bindings).
 
 This is intentionally generic. It can run on the GCP VM now and can later be re-pointed at SLURM nodes or login nodes.

@@ -26,7 +26,9 @@ These external references informed the platform design.
 - VirtualGL: https://www.virtualgl.org/
 - noVNC: https://novnc.com/noVNC/
 - Foxglove ROS 2 docs: https://docs.foxglove.dev/docs/getting-started/frameworks/ros2
-- Foxglove bridge: https://docs.foxglove.dev/docs/visualization/ros-foxglove-bridge
+- Foxglove bridge (live ROS → WebSocket for app.foxglove.dev): https://docs.foxglove.dev/docs/visualization/ros-foxglove-bridge
+- ROS 2 `foxglove_bridge` parameters (upstream): https://github.com/foxglove/foxglove-sdk/blob/main/ros/src/foxglove_bridge/README.md#configuration
+- Foxglove Agent (monitors a directory for recordings — **not** the live bridge; do not confuse with `ros-kilted-foxglove-bridge`): https://docs.foxglove.dev/docs/foxglove-agent
 - `web_video_server`: https://docs.ros.org/en/ros2_packages/rolling/api/web_video_server/
 
 ## SLURM And Containers

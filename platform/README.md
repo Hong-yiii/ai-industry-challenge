@@ -22,29 +22,29 @@ Use one shared GCP GPU VM as the interactive development backend, and keep the r
 
 ## What Is In Here
 
+- [docs/aic_platform_workflow.md](./docs/aic_platform_workflow.md): end-to-end map of **`aic`**, VMs, Compose, tunnels, and policy execution (Pixi vs **`model`**, Zenoh topology)
 - [docs/vm_instance.md](./docs/vm_instance.md): **provisioned instance record** — actual specs, cost estimates, and lifecycle scripts
 - [docs/project_constraints.md](./docs/project_constraints.md): repo and challenge constraints that shaped the design
 - [docs/gcp_shared_devflow.md](./docs/gcp_shared_devflow.md): the proposed shared GCP development flow
 - [docs/observability.md](./docs/observability.md): what to monitor and how to keep the system observable
 - [docs/slurm_portability.md](./docs/slurm_portability.md): how to keep the GCP workflow portable to SLURM
-- [docs/worklog.md](./docs/worklog.md): what was reviewed and why the recommendations landed here
+- [docs/worklog.md](./docs/worklog.md): historical design audit trail (see also [project_constraints.md](./docs/project_constraints.md))
 - [docs/foxglove_urdf_handoff.md](./docs/foxglove_urdf_handoff.md): Foxglove web + bridge — URDF topic `/robot_description_foxglove` and troubleshooting
 - [docs/reference_links.md](./docs/reference_links.md): external references consulted for GCP, observability, and SLURM portability
 - [slurm/train.sbatch.example](./slurm/train.sbatch.example): example train job shape for a containerized workflow
 - [slurm/eval.sbatch.example](./slurm/eval.sbatch.example): example eval job shape for a containerized workflow
-- [compose/dev.compose.yaml](./compose/dev.compose.yaml): eval + Foxglove bridge as a single compose stack
-- [compose/observability.compose.yaml](./compose/observability.compose.yaml): Prometheus + Grafana + GPU metrics stack
+- [compose/dev.compose.yaml](./compose/dev.compose.yaml): eval + Foxglove bridge only (lighter than the full platform stack)
+- [compose/observability.compose.yaml](./compose/observability.compose.yaml): includes dev stack (eval + Foxglove bridge) **and** Prometheus + Grafana + GPU/container metrics
+- [compose/full.compose.yaml](./compose/full.compose.yaml): same services as observability compose, Compose project name `aic-platform` for a single default “bring everything up” entrypoint
 - [docker/Dockerfile.foxglove](./docker/Dockerfile.foxglove): Foxglove bridge sidecar image (extends `aic_eval`)
 - [monitoring/prometheus.yml](./monitoring/prometheus.yml): Prometheus scrape config for the monitoring stack
-- [scripts/aic-vm-config.env](./scripts/aic-vm-config.env): shared project/zone variables for VM scripts
-- [scripts/aic-vm-up.sh](./scripts/aic-vm-up.sh): start the GCP dev VM
-- [scripts/aic-vm-down.sh](./scripts/aic-vm-down.sh): stop the GCP dev VM (disk preserved)
-- [scripts/aic-vm-ssh.sh](./scripts/aic-vm-ssh.sh): SSH into the dev VM via gcloud
-- [scripts/aic-vm-bootstrap.sh](./scripts/aic-vm-bootstrap.sh): one-time VM setup (NVIDIA driver, Docker, nvidia-ctk, Pixi, repo clone)
-- [scripts/aic-vm-pull.sh](./scripts/aic-vm-pull.sh): post-reboot image pull and smoke test
-- [scripts/aic-vm-observe.sh](./scripts/aic-vm-observe.sh): SSH port-forward tunnels to Grafana + Prometheus
-- [scripts/aic-prepare-worktree.sh](./scripts/aic-prepare-worktree.sh): create or refresh a per-user remote worktree
-- [scripts/aic-mk-results-dir.sh](./scripts/aic-mk-results-dir.sh): create a unique `AIC_RESULTS_DIR`
+- [monitoring/grafana/provisioning/](./monitoring/grafana/provisioning): Grafana datasource and provisioning (mounted by observability compose)
+- [scripts/aic](./scripts/aic): unified dev CLI (**`vm`** / **`tunnel`** / **`stack`** / **`dev`** / **`diag`**) — see [scripts/README.md](./scripts/README.md)
+- [scripts/aic_cli.py](./scripts/aic_cli.py): Python implementation invoked by **`aic`**
+- [scripts/aic-vm-config.env](./scripts/aic-vm-config.env): GCP project/zone/name and optional **`AIC_VM_REPO_PATH`**
+- [scripts/aic-vm-up.sh](./scripts/aic-vm-up.sh) … [scripts/aic-foxglove-bridge.sh](./scripts/aic-foxglove-bridge.sh): thin **compatibility shims** that delegate to **`aic`**
+- [scripts/aic-vm-bootstrap.sh](./scripts/aic-vm-bootstrap.sh): one-time VM setup (NVIDIA driver, Docker, nvidia-ctk, Pixi, repo clone; pipe via **`aic vm ssh`**)
+- [scripts/aic-vm-pull.sh](./scripts/aic-vm-pull.sh): post-reboot image pull / smoke (**pipe via `aic vm ssh`**)
 - [scripts/aic-healthcheck.sh](./scripts/aic-healthcheck.sh): inspect ROS graph and simulator liveness
 - [scripts/aic-session-report.sh](./scripts/aic-session-report.sh): snapshot host, Docker, and GPU state
 - [scripts/README.md](./scripts/README.md): script usage guide with examples and troubleshooting

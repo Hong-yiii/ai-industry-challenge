@@ -4,11 +4,18 @@
 #           and creates the /srv/aic working layout.
 #
 # Run from your LOCAL machine:
-#   platform/scripts/aic-vm-ssh.sh -- 'bash -s' < platform/scripts/aic-vm-bootstrap.sh
+#   platform/scripts/aic vm ssh -- 'bash -s' < platform/scripts/aic-vm-bootstrap.sh
 #
 # A reboot is required at the end before the GPU driver is usable.
-# After rebooting, run aic-vm-pull.sh to pull the aic_eval image and verify.
+# After rebooting, run aic vm pull or pipe aic-vm-pull.sh to pull the aic_eval image and verify.
 set -euo pipefail
+
+# Git clone URL for /srv/aic/repo (challenge toolkit upstream by default).
+# Override without editing the script, e.g.:
+#   platform/scripts/aic vm ssh -- \
+#     'AIC_REPO_URL=https://github.com/your-org/your-fork.git bash -s' \
+#     < platform/scripts/aic-vm-bootstrap.sh
+AIC_REPO_URL="${AIC_REPO_URL:-https://github.com/intrinsic-dev/aic.git}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 info()  { echo -e "${GREEN}[bootstrap]${NC} $*"; }
@@ -111,8 +118,8 @@ info "/srv/aic layout ready."
 if [[ -d /srv/aic/repo/.git ]]; then
   info "Repo already cloned at /srv/aic/repo — skipping."
 else
-  info "Cloning ai-industry-challenge repo…"
-  git clone https://github.com/Hong-yiii/ai-industry-challenge.git /srv/aic/repo
+  info "Cloning toolkit repo (${AIC_REPO_URL}) → /srv/aic/repo…"
+  git clone "${AIC_REPO_URL}" /srv/aic/repo
   info "Repo cloned to /srv/aic/repo."
 fi
 
@@ -124,8 +131,8 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo ""
 warn "ACTION REQUIRED: reboot the VM before continuing."
 warn "  From your local machine:"
-warn "    platform/scripts/aic-vm-down.sh   # stop (this triggers a clean shutdown)"
-warn "    platform/scripts/aic-vm-up.sh     # start again"
+warn "    platform/scripts/aic vm down   # stop (this triggers a clean shutdown)"
+warn "    platform/scripts/aic vm up     # start again"
 warn ""
 warn "After reboot, pull the eval image:"
-warn "    platform/scripts/aic-vm-ssh.sh -- 'bash -s' < platform/scripts/aic-vm-pull.sh"
+warn "    platform/scripts/aic vm ssh -- 'bash -s' < platform/scripts/aic-vm-pull.sh"

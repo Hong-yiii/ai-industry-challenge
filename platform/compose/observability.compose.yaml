@@ -1,8 +1,19 @@
 name: aic-observability
 
-# Metrics + dashboards stack for aic-dev.
+# Metrics + dashboards stack, with headless eval + Foxglove bridge included by default
+# (see dev.compose.yaml). Use dev.compose.yaml alone when you only need eval + Foxglove
+# and want to avoid Prometheus/Grafana/cAdvisor on the host.
+#
 # Start:  docker compose -f platform/compose/observability.compose.yaml up -d
 # Stop:   docker compose -f platform/compose/observability.compose.yaml down
+#
+# Do not run this compose project and dev.compose.yaml at the same time on one host:
+# both define aic_eval / foxglove_bridge and would collide on published ports.
+
+include:
+  - path: dev.compose.yaml
+
+# ── Metrics services (below) share a Docker network with included aic_eval / foxglove_bridge ──
 #
 # Access (via SSH tunnel from your laptop):
 #   gcloud compute ssh aic-dev --project ai-for-industry \
@@ -12,7 +23,7 @@ name: aic-observability
 #     http://localhost:3000  →  Grafana  (admin / admin)
 #     http://localhost:9090  →  Prometheus
 #
-# Foxglove (ROS topics) is a separate process — see below.
+# Foxglove WebSocket on the VM: 127.0.0.1:8765 (from foxglove_bridge included by dev compose; tunnel via platform/scripts/aic tunnel).
 
 services:
   prometheus:

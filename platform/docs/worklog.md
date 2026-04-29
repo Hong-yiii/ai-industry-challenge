@@ -1,7 +1,6 @@
 # Worklog
 
-This document records what was reviewed and why the current platform design was chosen.
-
+This document records what was reviewed and why the current platform design was chosen. For **normative** challenge constraints (eval vs model boundary, Kilted/Zenoh expectations), see [project_constraints.md](./project_constraints.md).
 ## Local Review
 
 The following repo areas were reviewed first:

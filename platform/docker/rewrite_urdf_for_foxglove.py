@@ -73,7 +73,6 @@ class UrdfRewriteNode(Node):
         out = rewrite_urdf(msg.data)
         n_ws = len(_WS_AIC_FILE_RE.findall(msg.data))
         n_opt = len(_OPT_ROS_FILE_RE.findall(msg.data))
-        n = n_ws + n_opt
         if out != msg.data:
             self.get_logger().info(
                 "Republishing URDF on /robot_description_foxglove "

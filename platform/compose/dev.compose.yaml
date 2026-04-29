@@ -1,6 +1,7 @@
 name: aic-dev
 
 # Full development stack: eval environment + Foxglove bridge.
+# Also included by observability.compose.yaml (metrics + same eval/Foxglove); do not run both compose projects on one host.
 #
 # IMPORTANT — install-tree skew
 # `foxglove_bridge` is built `FROM ghcr.io/intrinsic-dev/aic/aic_eval:latest`, so
@@ -22,14 +23,18 @@ name: aic-dev
 # CheatCode (needs sim ground-truth TF): set before build/up:
 #   export AIC_GROUND_TRUTH=true
 #
-# Then open the SSH tunnel from your laptop:
-#   platform/scripts/aic-vm-observe.sh
+# Then open SSH port-forwards from your laptop:
+#   platform/scripts/aic tunnel
 #
 # And connect Foxglove:
 #   https://app.foxglove.dev  →  Open Connection  →  Foxglove WebSocket  →  ws://localhost:8765
 #
 # 3D robot meshes (browser): URDF custom layer → Source=Topic → /robot_description_foxglove
 # (sidecar rewrites file:// install paths to package:// for the bridge assets API).
+#
+# shutdown_on_aic_engine_exit:=false keeps the eval container alive during long interactive
+# sessions (default here). Disposable `docker run` smoke snippets often use :=true instead.
+# Full stack details and shutdown flag notes: [../scripts/README.md](../scripts/README.md).
 
 services:
   aic_eval:

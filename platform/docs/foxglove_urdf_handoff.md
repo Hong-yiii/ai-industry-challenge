@@ -9,6 +9,17 @@ This doc is the canonical setup and troubleshooting path. It intentionally
 prioritizes Foxglove docs and operational best practice over speculative
 workarounds.
 
+## Quick path (VM + laptop)
+
+Canonical layout on the VM is **`/srv/aic/repo`** after [bootstrap](../scripts/aic-vm-bootstrap.sh) (if you use a home-directory clone instead, adjust paths consistently).
+
+1. On **`aic-dev`**, repo root: `docker compose -f platform/compose/dev.compose.yaml up -d`, or equivalently **`platform/scripts/aic stack dev up`** (or the **`aic-foxglove-bridge.sh`** shim — see [**scripts/README.md**](../scripts/README.md)).
+2. On your **laptop**: `platform/scripts/aic tunnel`
+3. [app.foxglove.dev](https://app.foxglove.dev) → Open connection → Foxglove WebSocket → `ws://localhost:8765`
+4. 3D panel: URDF custom layer → **Source = Topic** → **`/robot_description_foxglove`**, **Control mode = Transforms**
+
+Everything below is rationale, troubleshooting, and edge cases. Curated upstream links (Foxglove bridge vs Agent) are in [reference_links.md](./reference_links.md).
+
 ---
 
 ## Architecture and data plane
@@ -55,14 +66,6 @@ older files** while `robot_state_publisher` in `aic_eval` emits URIs for the
 Fix: pull `aic_eval`, rebuild the sidecar with **`--pull`**, recreate both
 containers (see `platform/scripts/aic-foxglove-bridge.sh` and
 `AIC_FOXGLOVE_SYNC_BASE=1`).
-
----
-
-## Goal
-
-Render the AIC robot URDF (UR + Robotiq Hand‑E gripper + Axia80 F/T sensor +
-cameras) in the **Foxglove 3D panel**, connected over the SSH IAP tunnel to the
-`foxglove_bridge` sidecar running on the GCP VM.
 
 ---
 
@@ -208,26 +211,26 @@ is stable.
 | `platform/docker/foxglove_bridge_params.yaml` | Bridge runtime config: `port`, `capabilities`, `asset_uri_allowlist`, `topic_whitelist`, `client_topic_whitelist` |
 | `platform/docker/foxglove-entrypoint.sh` | Sources ROS + AIC workspace, starts URDF rewrite helper, `image_transport republish` for cameras, then `foxglove_bridge` |
 | `platform/compose/dev.compose.yaml` | Brings up `aic_eval` + `foxglove_bridge` together on the same Docker network |
-| `platform/scripts/aic-foxglove-bridge.sh` | One‑shot helper to build + start the sidecar |
-| `platform/scripts/aic-vm-observe.sh` | Opens SSH port‑forwards (3000/9090/8080/8765) from laptop to VM |
+| `platform/scripts/aic stack dev up` | Preferred way to rebuild + start the dev stack (**`aic`** CLI) |
+| `platform/scripts/aic tunnel` | SSH port‑forwards (3000/9090/8080/8765) — replaced `aic-vm-observe.sh` |
 
 ---
 
 ## Concrete next steps
 
-1. **Deploy the sidecar** (copy `platform/docker/*` for this stack, then rebuild
-   with the same `aic_eval` digest the VM will run — on the VM prefer
-   `AIC_FOXGLOVE_SYNC_BASE=1 platform/scripts/aic-foxglove-bridge.sh`):
+**Prefer** editing in git and `git pull` on the VM (paths under **`/srv/aic/repo`**) instead of copying files with `gcloud compute scp`. Deploy helpers below are for one-off edits when you cannot push/pull.
+
+1. **Optional: sync docker files manually** (only if not using repo git on VM):
    ```bash
    gcloud compute scp \
      platform/docker/Dockerfile.foxglove \
      platform/docker/foxglove-entrypoint.sh \
      platform/docker/foxglove_bridge_params.yaml \
      platform/docker/rewrite_urdf_for_foxglove.py \
-     aic-dev:~/ai-industry-challenge/platform/docker/ \
+     aic-dev:/srv/aic/repo/platform/docker/ \
      --project ai-for-industry --zone asia-southeast1-a
    gcloud compute ssh aic-dev --project ai-for-industry --zone asia-southeast1-a -- \
-     "cd ~/ai-industry-challenge && \
+     "cd /srv/aic/repo && \
       docker compose -f platform/compose/dev.compose.yaml build foxglove_bridge && \
       docker compose -f platform/compose/dev.compose.yaml up -d foxglove_bridge"
    ```
@@ -283,7 +286,7 @@ Work through this in order; most issues are client settings or image skew, not
 
 4. **Install-tree skew** — after `docker compose pull` or any new
    `aic_eval:latest` digest, rebuild the sidecar so **`FROM aic_eval`** matches:
-   `AIC_FOXGLOVE_SYNC_BASE=1 platform/scripts/aic-foxglove-bridge.sh` on the VM,
+   `AIC_FOXGLOVE_SYNC_BASE=1 platform/scripts/aic stack dev up --sync-foxglove` on the VM (same as `AIC_FOXGLOVE_SYNC_BASE=1 platform/scripts/aic-foxglove-bridge.sh`),
    then restart or recreate **`aic_eval`** if needed so both containers see the
    same underlying files.
 

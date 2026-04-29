@@ -3,7 +3,7 @@
 # Verifies the NVIDIA driver, pulls the aic_eval image, and runs a smoke test.
 #
 # Run from your LOCAL machine:
-#   platform/scripts/aic-vm-ssh.sh -- 'bash -s' < platform/scripts/aic-vm-pull.sh
+#   platform/scripts/aic vm ssh -- 'bash -s' < platform/scripts/aic-vm-pull.sh
 set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -65,6 +65,9 @@ fi
 info "Running eval container smoke test (prints image entrypoint help)…"
 ${DOCKER} run --rm --gpus all "${AIC_EVAL_IMAGE}" /entrypoint.sh --help 2>&1 | head -20 || true
 info "Smoke test done."
+
+# Note: Compose dev.stack uses shutdown_on_aic_engine_exit:=false (long Foxglove sessions).
+# The printed docker-run example uses :=true — one-shot smoke exits when aic_engine stops.
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""

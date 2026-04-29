@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Unified AIC dev CLI — sources VM defaults then runs Python implementation.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/aic-vm-config.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${SCRIPT_DIR}/aic-vm-config.env"
+  set +a
+fi
+
+exec python3 "${SCRIPT_DIR}/aic_cli.py" "$@"
