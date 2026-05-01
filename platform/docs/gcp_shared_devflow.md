@@ -34,6 +34,7 @@ This machine choice is an inference from the challenge docs and current GCP mach
 
 ## Access Model
 
+- Concrete **instance-scoped collaborator IAM** (roles, expiry, add-user commands) for `aic-dev`: [vm_collaborator_iam.md](./vm_collaborator_iam.md)
 - Compute Engine OS Login for Linux identities
 - IAP for SSH access to internal-only VMs
 - Browser SSH from the Google Cloud console for emergency access

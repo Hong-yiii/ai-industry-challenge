@@ -112,6 +112,7 @@ AIC_VM_ZONE=asia-southeast1-b platform/scripts/aic vm up
 
 ## Access
 
+- **Collaborator IAM** (full control of `aic-dev` only, time-limited OS Login + IAP): [vm_collaborator_iam.md](./vm_collaborator_iam.md)
 - **SSH**: `gcloud compute ssh` via **`platform/scripts/aic vm ssh`** (preferred)
 - **Browser SSH**: Available in the GCP console but prone to OAuth loop hangs; use only as a fallback
 - **External IP**: Dynamic on each start — run `platform/scripts/aic vm up` and use the printed address (not stored here; it changes with restarts and Spot behavior)
