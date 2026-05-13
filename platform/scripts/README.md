@@ -68,6 +68,7 @@ Forward localhost **3000** (Grafana), **9090** (Prometheus), **8080** (cAdvisor)
 platform/scripts/aic tunnel
 platform/scripts/aic tunnel --metrics-only
 platform/scripts/aic tunnel --foxglove-only
+platform/scripts/aic tunnel --isaac-foxglove
 ```
 
 **Ctrl+C** opens an interactive teardown menu (tunnel only, compose down, stop `model`, or stop VM — see **`AIC_TEARDOWN`** in `aic_cli.py`).
@@ -94,6 +95,20 @@ aic stack test up|down|logs [--remote] [-- EXTRA_LOG_ARGS]
 platform/scripts/aic diag ros   # ROS graph — runs aic-healthcheck.sh
 platform/scripts/aic diag host  # Host snapshot — runs aic-session-report.sh
 ```
+
+### Isaac Lab
+
+NVIDIA Isaac Lab runs as a separate training workflow from the Gazebo eval
+stack. Setup is remote-only for the shared VM:
+
+```bash
+platform/scripts/aic vm up
+platform/scripts/aic vm ssh 'bash -s' < platform/scripts/aic-isaac-setup.sh
+platform/scripts/aic tunnel --isaac-foxglove
+```
+
+Then connect Foxglove to `ws://localhost:8766`. See
+[`../docs/isaac_lab_workflow.md`](../docs/isaac_lab_workflow.md).
 
 ---
 

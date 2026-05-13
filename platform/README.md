@@ -30,6 +30,7 @@ Use one shared GCP GPU VM as the interactive development backend, and keep the r
 - [docs/slurm_portability.md](./docs/slurm_portability.md): how to keep the GCP workflow portable to SLURM
 - [docs/worklog.md](./docs/worklog.md): historical design audit trail (see also [project_constraints.md](./docs/project_constraints.md))
 - [docs/foxglove_urdf_handoff.md](./docs/foxglove_urdf_handoff.md): Foxglove web + bridge — URDF topic `/robot_description_foxglove` and troubleshooting
+- [docs/isaac_lab_workflow.md](./docs/isaac_lab_workflow.md): remote NVIDIA Isaac Lab setup, benchmark, and Foxglove SDK streaming
 - [docs/reference_links.md](./docs/reference_links.md): external references consulted for GCP, observability, and SLURM portability
 - [slurm/train.sbatch.example](./slurm/train.sbatch.example): example train job shape for a containerized workflow
 - [slurm/eval.sbatch.example](./slurm/eval.sbatch.example): example eval job shape for a containerized workflow
@@ -45,6 +46,7 @@ Use one shared GCP GPU VM as the interactive development backend, and keep the r
 - [scripts/aic-vm-up.sh](./scripts/aic-vm-up.sh) … [scripts/aic-foxglove-bridge.sh](./scripts/aic-foxglove-bridge.sh): thin **compatibility shims** that delegate to **`aic`**
 - [scripts/aic-vm-bootstrap.sh](./scripts/aic-vm-bootstrap.sh): one-time VM setup (NVIDIA driver, Docker, nvidia-ctk, Pixi, repo clone; pipe via **`aic vm ssh`**)
 - [scripts/aic-vm-pull.sh](./scripts/aic-vm-pull.sh): post-reboot image pull / smoke (**pipe via `aic vm ssh`**)
+- [scripts/aic-isaac-setup.sh](./scripts/aic-isaac-setup.sh): remote Isaac Lab setup, assets, container start, and Foxglove SDK dependencies
 - [scripts/aic-healthcheck.sh](./scripts/aic-healthcheck.sh): inspect ROS graph and simulator liveness
 - [scripts/aic-session-report.sh](./scripts/aic-session-report.sh): snapshot host, Docker, and GPU state
 - [scripts/README.md](./scripts/README.md): script usage guide with examples and troubleshooting

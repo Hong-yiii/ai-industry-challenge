@@ -570,7 +570,9 @@ def cmd_tunnel(ns: argparse.Namespace) -> None:
     global _tunnel_proc
 
     tunnels: list[tuple[str, str]]
-    if ns.foxglove_only:
+    if ns.isaac_foxglove:
+        tunnels = [("8766", "8766")]
+    elif ns.foxglove_only:
         tunnels = [("8765", "8765")]
     elif ns.metrics_only:
         tunnels = [
@@ -591,13 +593,21 @@ def cmd_tunnel(ns: argparse.Namespace) -> None:
         ssh_args += ["-L", f"{lp}:localhost:{rport}"]
 
     preflight_gcloud()
-    print(
-        "Opening tunnels…\n"
-        "  Grafana → http://localhost:3000  Prometheus → http://localhost:9090\n"
-        "  Foxglove → ws://localhost:8765  (visit https://app.foxglove.dev)\n"
-        "\nCtrl+C opens teardown menu (see AIC_TEARDOWN for scripted behavior).",
-        flush=True,
-    )
+    if ns.isaac_foxglove:
+        print(
+            "Opening tunnels…\n"
+            "  Isaac Foxglove SDK → ws://localhost:8766  (visit https://app.foxglove.dev)\n"
+            "\nCtrl+C opens teardown menu (see AIC_TEARDOWN for scripted behavior).",
+            flush=True,
+        )
+    else:
+        print(
+            "Opening tunnels…\n"
+            "  Grafana → http://localhost:3000  Prometheus → http://localhost:9090\n"
+            "  Foxglove → ws://localhost:8765  (visit https://app.foxglove.dev)\n"
+            "\nCtrl+C opens teardown menu (see AIC_TEARDOWN for scripted behavior).",
+            flush=True,
+        )
 
     proc = subprocess.Popen(ssh_args)
     _tunnel_proc = proc
@@ -759,6 +769,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     tnp = sub.add_parser("tunnel", help="SSH port-forwards (Grafana/Prometheus/cAdvisor/Foxglove)")
     tnp.add_argument("--foxglove-only", action="store_true")
+    tnp.add_argument("--isaac-foxglove", action="store_true", help="Forward Isaac SDK Foxglove on 8766")
     tnp.add_argument("--metrics-only", action="store_true")
     tnp.set_defaults(func=cmd_tunnel)
 
@@ -803,5 +814,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
